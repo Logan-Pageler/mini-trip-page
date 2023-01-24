@@ -1,0 +1,1 @@
+* Backend for mini trip planner

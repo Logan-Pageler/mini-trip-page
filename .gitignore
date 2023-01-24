@@ -1,6 +1,11 @@
 .DS_Store
-node_modules
+/Frontend/node_modules
 /dist
+
+/Backend/run.bat
+/Backend/run.sh
+/Backend/env
+/Backend/__pycache__
 
 # local env files
 .env.local
