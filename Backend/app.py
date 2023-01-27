@@ -54,22 +54,34 @@ oauth.register(
 def google():
 
     response = oauth.google.authorize_redirect(AUTH_REDIRECT_URI)
-    print(response.headers.get('Location'))
     # response.headers.add('Access-Control-Allow-Origin', '*')
     # response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     # response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
 
-    session['test'] = 'test'
     return response.headers.get('Location')
 
 @app.route('/auth/callback/')
 def google_auth():
-    print(session['test'])
     token = oauth.google.authorize_access_token()
     session['token'] = token
     
-    print(" Google User ", token)
-    return 'http://localhost:3000?token=' + token['userinfo']['email'] + '&name=' + token['userinfo']['name']
+    return 'http://localhost:3000'
+
+@app.route('/auth/checkLogin/')
+def check_login():
+    return 'true' if 'token' in session.keys() else 'false'
+
+@app.route('/auth/logout/')
+def logout():
+    session.pop('token')
+    return 'true'
+
+@app.route('/api/getName/')
+def get_name():
+    if 'token' in session.keys():
+        return session['token']['userinfo']['name']
+    return 'false'
+
 
 
 
@@ -83,7 +95,6 @@ def get_table():
         result = cur.fetchone()
         if result == None:
             return 'false'
-        print(result[0])
         return result[0]
 
     return 'false'

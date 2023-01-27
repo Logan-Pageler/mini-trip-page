@@ -1,8 +1,8 @@
 <template>
-  <v-btn v-if="!token" @click="Login()" variant="outlined"> Login </v-btn>
-  <div v-if="token">
+  <v-btn v-if="!loggedIn" @click="Login()" variant="outlined"> Login </v-btn>
+  <div v-if="loggedIn">
     Logged in as {{ name }}
-    <v-btn href="http://localhost:3000" variant="outlined"> Logout </v-btn>
+    <v-btn @click="Logout()" variant="outlined"> Logout </v-btn>
   </div>
 </template>
 
@@ -12,13 +12,12 @@ import axios, { AxiosError } from "axios";
 export default {
   data() {
     return {
-      token: null as any,
+      loggedIn: false,
       name: null as any,
     };
   },
   methods: {
     async Login() {
-      console.log("hello");
       var response = await axios
         .get("http://localhost:8040/auth/login/", { withCredentials: true })
         .then((res) => res.data)
@@ -26,14 +25,37 @@ export default {
           console.error(`There was an error with ${error.config!.url}.`);
           console.error(error.toJSON());
         });
-      console.log(response);
       window.location.href = response;
+    },
+    async Logout() {
+      var response = await axios
+        .get("http://localhost:8040/auth/logout/", { withCredentials: true })
+        .then((res) => res.data)
+        .catch((error: AxiosError) => {
+          console.error(`There was an error with ${error.config!.url}.`);
+          console.error(error.toJSON());
+        });
+      window.location.reload();
     },
   },
   created: async function () {
-    console.log(this.$route.query.token);
-    this.token = this.$route.query.token;
-    this.name = this.$route.query.name;
+    this.loggedIn = await axios
+      .get("http://localhost:8040/auth/checkLogin/", { withCredentials: true })
+      .then((res) => res.data)
+      .catch((error: AxiosError) => {
+        console.error(`There was an error with ${error.config!.url}.`);
+        console.error(error.toJSON());
+      });
+
+    if (this.loggedIn) {
+      this.name = await axios
+        .get("http://localhost:8040/api/getName/", { withCredentials: true })
+        .then((res) => res.data)
+        .catch((error: AxiosError) => {
+          console.error(`There was an error with ${error.config!.url}.`);
+          console.error(error.toJSON());
+        });
+    }
   },
 };
 </script>

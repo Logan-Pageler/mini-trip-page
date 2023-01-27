@@ -110,7 +110,7 @@ export default {
       visible,
       name,
       editable,
-      token: null as any,
+      loggedIn: false,
     };
   },
   methods: {
@@ -143,9 +143,8 @@ export default {
               }
               this.data.push(row);
             }
-            if (this.token != undefined) {
-              this.postTable();
-            }
+
+            this.postTable();
           };
           reader.readAsBinaryString(this.file);
         }
@@ -165,19 +164,17 @@ export default {
       this.postTable();
     },
     async postTable() {
-      var response = await axios
-        .post(
-          "http://localhost:8040/api/setTable/?user=" + this.token,
-          this.data,
-          { withCredentials: true }
-        )
-        .then((res) => res.data)
-        .catch((error: AxiosError) => {
-          console.error(`There was an error with ${error.config!.url}.`);
-          console.error(error.toJSON());
-        });
-
-      console.log(response);
+      if (this.loggedIn) {
+        var response = await axios
+          .post("http://localhost:8040/api/setTable/", this.data, {
+            withCredentials: true,
+          })
+          .then((res) => res.data)
+          .catch((error: AxiosError) => {
+            console.error(`There was an error with ${error.config!.url}.`);
+            console.error(error.toJSON());
+          });
+      }
     },
     AddRow() {
       this.data.push(new Array<string>(4));
@@ -186,12 +183,17 @@ export default {
     },
   },
   created: async function () {
-    console.log(this.$route.query.token);
-    this.token = this.$route.query.token;
+    this.loggedIn = await axios
+      .get("http://localhost:8040/auth/checkLogin/", { withCredentials: true })
+      .then((res) => res.data)
+      .catch((error: AxiosError) => {
+        console.error(`There was an error with ${error.config!.url}.`);
+        console.error(error.toJSON());
+      });
 
-    if (this.token != undefined) {
+    if (this.loggedIn) {
       var response = await axios
-        .get("http://localhost:8040/api/getTable/?user=" + this.token, {
+        .get("http://localhost:8040/api/getTable/", {
           withCredentials: true,
         })
         .then((res) => res.data)
@@ -199,7 +201,6 @@ export default {
           console.error(`There was an error with ${error.config!.url}.`);
           console.error(error.toJSON());
         });
-      console.log(response);
 
       this.data = response;
     }
