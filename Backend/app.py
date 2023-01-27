@@ -6,6 +6,7 @@ from flask import Flask, render_template, url_for, redirect, session, request
 from authlib.integrations.flask_client import OAuthError, OAuth
 import pymysql
 import os
+from flask_cors import CORS
 
 
 
@@ -27,6 +28,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_ENDPOINT", default=False)
 app.secret_key = os.urandom(12)
 
+cors = CORS(app, origins=["http://localhost:3000"], headers=['Content-Type'], expose_headers=['Access-Control-Allow-Origin'], supports_credentials=True)
+
 
 oauth = OAuth(app)
 oauth.register(
@@ -40,32 +43,41 @@ oauth.register(
 )
 
 # allow access from origin
-@app.after_request
-def after_request(response):
-  response.headers.add('Access-Control-Allow-Origin', '*')
-  response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-  response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-  return response
+# @app.after_request
+# def after_request(response):
+#   response.headers.add('Access-Control-Allow-Origin', '*')
+#   response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#   response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#   return response
 
-@app.route('/auth/Login/')
+@app.route('/auth/login/')
 def google():
 
-    return oauth.google.authorize_redirect(AUTH_REDIRECT_URI)
+    response = oauth.google.authorize_redirect(AUTH_REDIRECT_URI)
+    print(response.headers.get('Location'))
+    # response.headers.add('Access-Control-Allow-Origin', '*')
+    # response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    # response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
 
-@app.route('/auth/google/callback/')
+    session['test'] = 'test'
+    return response.headers.get('Location')
+
+@app.route('/auth/callback/')
 def google_auth():
+    print(session['test'])
     token = oauth.google.authorize_access_token()
     session['token'] = token
     
     print(" Google User ", token)
-    return redirect('http://localhost:3000?token=' + token['userinfo']['email'] + '&name=' + token['userinfo']['name'])
+    return 'http://localhost:3000?token=' + token['userinfo']['email'] + '&name=' + token['userinfo']['name']
+
 
 
 @app.route('/api/getTable/')
 def get_table():
-    args = request.args
-    user = args.get('user')
-    if(user != None):
+    
+    if('token' in session.keys()):
+        user = session['token']['userinfo']['email']
         cur = db.cursor()
         cur.execute('SELECT user_table FROM User_Data WHERE user = %s', user)
         result = cur.fetchone()
@@ -78,18 +90,16 @@ def get_table():
 
 @app.route('/api/setTable/', methods=['POST'])
 def set_table():
-    print('''
-        UPDATE INTO User_Data (user, user_table)
-        VALUES ('%s', '%s')
-    ''' %(request.args['user'], request.data.decode("utf-8")))
-    cur = db.cursor()
-    print(cur.execute('''
-        REPLACE INTO User_Data (user, user_table) VALUES (%s, %s)
-    ''', (request.args['user'], request.data)))
+    if('token' in session.keys()):
+        cur = db.cursor()
+        print(cur.execute('''
+            REPLACE INTO User_Data (user, user_table) VALUES (%s, %s)
+        ''', (session['token']['userinfo']['email'], request.data)))
 
-    db.commit()
+        db.commit()
     
-    return 'true'
+        return 'true'
+    return 'false'
         
 
 
