@@ -1,4 +1,6 @@
--   Mini Trip Page
+## Mini Trip Page
+
+*Note: ./run.bat and ./run.sh are not available on my git hub because they contain confidential information.*
 
 Able to preview and edit an xslx file.
 
